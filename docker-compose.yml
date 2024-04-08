@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d/
+    ports:
+      - "9000:80"
+    networks:
+      - laravel
+
+  php:
+    build: ./docker/php
+    container_name: php
+    working_dir: /var/www/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/var/www
+
+    networks:
+      - laravel
+
+  db_mysql:
+    container_name: db_mysql
+    image: mysql
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: new_pingCRM
+    volumes:
+      - ./docker/mysql/data:/var/lib/mysql
+    networks:
+      - laravel
+
+  db_postgres:
+    image: postgres
+    container_name: db_postgres
+    volumes:
+      - ./docker/postgresql/data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: new_pingCRM
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+    networks:
+      - laravel
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgAdmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db_postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: melvin@mail.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    networks:
+        - laravel
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db_mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: password
+    depends_on:
+      - db_mysql
+    networks:
+      - laravel
+networks:
+  laravel:
+    driver: bridge
+
+volumes:
+  postgres:
